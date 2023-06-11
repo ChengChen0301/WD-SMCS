@@ -17,7 +17,6 @@ int main(int argc, char *argv[]){
     char *k = argv[1];
     string dir = "../observation";
     mkdir(dir.c_str(),S_IRUSR | S_IWUSR | S_IXUSR | S_IRWXG | S_IRWXO);
-    c = 0.0;
     srand(time(NULL));
     struct timeb timeSeed;
     ftime(&timeSeed);
