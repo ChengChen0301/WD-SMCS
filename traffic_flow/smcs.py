@@ -23,16 +23,6 @@ def initialize(v_max, a_max, b_max, T, s0, delta):
         ]
     })
     sim.dt = 1.0 / 10
-    # data = np.loadtxt('observation/round2/obsv24.txt')
-    # for i in range(len(data)):
-    #     for j in range(len(sim.roads)):
-    #         if data[i][1] == sim.roads[j].start[1]:
-    #             config = {"path": [j]}
-    #             theVehicle = Vehicle(config, v_max, a_max, b_max, T, s0)
-    #             theVehicle.x = data[i, 0]
-    #             theVehicle.v = data[i, 2]
-    #             theVehicle.alpha = data[i, 3]
-    #             sim.roads[j].vehicles.append(theVehicle)
     return sim
 
 
@@ -96,12 +86,9 @@ if __name__ == '__main__':
     b4 = 4
     a5 = 0.5
     b5 = 5
-    # v_max = 16.6
-    # a_max = 0.73
-    # b_max = 1.67
     a6 = 1
     b6 = 5
-    saveDir = 'result/round2_11'
+    saveDir = 'result/vehicle_small_noise'
     makedirs(saveDir)
 
     predSamp = np.zeros((parNum, staDim))
@@ -118,18 +105,10 @@ if __name__ == '__main__':
 
     predSamp[:, 0] = np.random.uniform(a1, b1, [parNum, 1]).squeeze()  # v
     predSamp[:, 1] = np.random.uniform(a2, b2, [parNum, 1]).squeeze()  # a
-    # predSamp[:, 2] = np.random.uniform(a3, b3, [parNum, 1]).squeeze()  # b
     predSamp[:, 2] = np.zeros(parNum) + b_max
     predSamp[:, 3] = np.random.uniform(a4, b4, [parNum, 1]).squeeze()  # T
-    # predSamp[:, 4] = np.random.uniform(a5, b5, [parNum, 1]).squeeze()  # s0
     predSamp[:, 4] = np.zeros(parNum) + s0
-    # predSamp[:, 5] = np.random.uniform(a6, b6, [parNum, 1]).squeeze()  # delta
     predSamp[:, 5] = np.zeros(parNum) + delta
-
-    # predSamp[0, 0] = v_max
-    # predSamp[0, 1] = a_max
-    # predSamp[0, 3] = T
-    # predSamp[0, 5] = delta
 
     weights = np.zeros(parNum) + 1.0 / parNum
     save_ensemble[0, :, 0] = predSamp[:, 0]
@@ -157,16 +136,13 @@ if __name__ == '__main__':
         for i in range(parNum):
             nextSamp[i, 0] = disturbPara(predSamp[i, 0], a1, b1, levels[0])
             nextSamp[i, 1] = disturbPara(predSamp[i, 1], a2, b2, levels[1])
-            # nextSamp[i, 2] = disturbPara(predSamp[i, 2], a3, b3, levels[2])
             nextSamp[i, 2] = predSamp[i, 2]
             nextSamp[i, 3] = disturbPara(predSamp[i, 3], a4, b4, levels[3])
-            # nextSamp[i, 4] = disturbPara(predSamp[i, 4], a5, b5, levels[4])
             nextSamp[i, 4] = predSamp[i, 4]
-            # nextSamp[i, 5] = disturbPara(predSamp[i, 5], a6, b6, levels[5])
             nextSamp[i, 5] = predSamp[i, 5]
 
             for tt in range(1, t+1, 1):
-                x0 = np.loadtxt('observation/round2/obsv' + str(tt+0) + '.txt').reshape(-1, 4)[:, 0:2]
+                x0 = np.loadtxt('observation/vehicle_small_noise/obsv' + str(tt+0) + '.txt').reshape(-1, 4)[:, 0:2]
                 w0 = np.ones((len(x0),)) / len(x0)
 
                 if tt < t:
@@ -184,7 +160,6 @@ if __name__ == '__main__':
                             x1.append((sim.roads[j].vehicles[k].x, sim.roads[j].start[1]))
                     x1 = np.array(x1)
                     np.savetxt(saveDir + '/' + str(t) + '_' + str(i) + '_' + str(tt) + '.txt', x1)
-                    # print(x1)
                     w1 = np.ones((len(x1),)) / len(x1)
                     M = np.sqrt(ot.dist(x0, x1))
                     emd1 = ot.emd2(w0, w1, M, numItermax=1e7)
@@ -206,8 +181,6 @@ if __name__ == '__main__':
                     for k in range(len(sim.roads[j].vehicles)):
                         x2.append((sim.roads[j].vehicles[k].x, sim.roads[j].start[1]))
                 x2 = np.array(x2)
-                # np.savetxt('test/' + str(t) + '_' + str(i) + '_' + str(tt+dataScale) + '.txt', x2)
-                # print(x2)
                 w2 = np.ones((len(x2),)) / len(x2)
                 M = np.sqrt(ot.dist(x0, x2))
                 emd2 = ot.emd2(w0, w2, M, numItermax=1e7)
@@ -224,19 +197,14 @@ if __name__ == '__main__':
             p1 = 1.0
             p2 = 1.0
             for tt in range(1, t+1, 1):
-                # p1 = p1 * compute_weights(save_each_wass[t, i, tt] / minDist[tt])
-                # p2 = p2 * compute_weights(save_each_wass[t, i, tt+dataScale] / minDist[tt])
-                p1 = p1 * compute_weights(save_each_wass[t, i, tt] / maxDist[tt])
-                p2 = p2 * compute_weights(save_each_wass[t, i, tt + dataScale] / maxDist[tt])
+                p1 = p1 * compute_weights(save_each_wass[t, i, tt] / minDist[tt])
+                p2 = p2 * compute_weights(save_each_wass[t, i, tt+dataScale] / minDist[tt])
 
             if p1 >= p2:
                 if p1 == 0:
                     accptance = 1
-                    print(str(i) + 'yes')
                 else:
                     accptance = p2 / p1
-            # if p1 > p2:
-            #     accptance = p2 / p1
             else:
                 accptance = 1.0
             p1s[i] = p1
@@ -253,12 +221,10 @@ if __name__ == '__main__':
             else:
                 flag0[i] = 0
 
-            # weights[i] = weights[i] * compute_weights(save_each_wass[t, i, t] / minDist[t])
-            weights[i] = weights[i] * compute_weights(save_each_wass[t, i, t] / maxDist[t])
+            weights[i] = weights[i] * compute_weights(save_each_wass[t, i, t] / minDist[t])
             accp[i] = accptance
 
         if np.sum(weights) == 0:
-            print("yes")
             weights = np.zeros(parNum) + 1.0 / parNum
         else:
             weights = weights / np.sum(weights)
@@ -281,13 +247,6 @@ if __name__ == '__main__':
         save_eff[t] = 1.0 / np.sum(np.square(weights))
         save_wass[t] = save_each_wass[t, :, 0:dataScale]
 
-        # levels[0] = weighted_std(weights, predSamp[:, 0])
-        # levels[1] = weighted_std(weights, predSamp[:, 1])
-        # levels[2] = weighted_std(weights, predSamp[:, 2])
-        # levels[3] = weighted_std(weights, predSamp[:, 3])
-        # levels[4] = weighted_std(weights, predSamp[:, 4])
-        # levels[5] = weighted_std(weights, predSamp[:, 5])
-
         if save_eff[t] < Nth:
             pick = resample(weights)
             newSamp = predSamp[pick.astype(int), :]
@@ -304,7 +263,6 @@ if __name__ == '__main__':
         np.save(saveDir + '/ensembles.npy', save_ensemble)
         np.save(saveDir+'/wass.npy', save_wass)
         np.save(saveDir + '/eff.npy', save_eff)
-        np.save(saveDir + '/minwass.npy', minwass)
 
     print("total_time = " + str(t2 - t0))
 
